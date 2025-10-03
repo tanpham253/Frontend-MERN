@@ -1,4 +1,5 @@
 import type { Product } from "@/services/productService"
+import { formatCurrency } from '@/lib/utils'
 import { Link } from "react-router"
 import ButtonAddToCart from "./ButtonAddToCart"
 
@@ -17,7 +18,7 @@ const ProductsGrid = ({
                         </div>
                         <h3 className="font-bold px-3">{product.product_name}</h3>
                         <div className="price  px-3">
-                            <strong>${product.price}</strong>
+                            <strong>{formatCurrency(product.price)}</strong>
                         </div>
                     </Link>
                     <div className="product-action flex justify-center my-4">
