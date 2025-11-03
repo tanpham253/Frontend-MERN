@@ -1,4 +1,3 @@
-
 import CartSteps from "@/components/CartSteps";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -8,7 +7,17 @@ import { useMutation } from "@tanstack/react-query";
 import { createOrder } from "@/services/orderSerivce";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const schema = yup.object().shape({
   last_name: yup.string().required("Vui lòng nhập họ"),
@@ -18,16 +27,14 @@ const schema = yup.object().shape({
   street: yup.string().required("Vui lòng nhập địa chỉ"),
   city: yup.string().required("Vui lòng nhập thành phố"),
   state: yup.string().required("Vui lòng nhập tỉnh/thành"),
-  zip_code: yup.string().max(5, "Tối đa 5 ký tự").optional().default(''),
+  zip_code: yup.string().max(5, "Tối đa 5 ký tự").optional().default(""),
   payment_type: yup.number().required("Vui lòng chọn phương thức thanh toán").default(1),
-  order_note: yup.string().optional().default(''),
+  order_note: yup.string().optional().default(""),
 });
 
 const CartCheckoutPage = () => {
   const navigate = useNavigate();
-
-  //get items for checkout
-  const { items, totalAmount , setCartSteps, setOrderInfo} = useShoppingCartStore((state) => state);
+  const { items, totalAmount, setCartSteps, setOrderInfo } = useShoppingCartStore();
 
   const {
     register,
@@ -38,21 +45,13 @@ const CartCheckoutPage = () => {
     mode: "onTouched",
   });
 
-  //Mutation Order
   const mutationCreateOrder = useMutation({
-    mutationFn: createOrder,//hàm api tạo đơn
-    onError: (error)=>{
-      // Handle error
-      console.error("Error creating order:", error);
-      toast.error("Đã xảy ra lỗi khi tạo đơn hàng");
-    },
+    mutationFn: createOrder,
+    onError: () => toast.error("Đã xảy ra lỗi khi tạo đơn hàng"),
     onSuccess: (data) => {
-      // Handle successful order creation
-      console.log("Order created successfully:", data);
       setCartSteps(4);
-      //lưu lại thông tin đơn hàng vào localStorage
       setOrderInfo({
-          customer: {
+        customer: {
           last_name: data.last_name,
           first_name: data.first_name,
           phone: data.phone,
@@ -62,21 +61,16 @@ const CartCheckoutPage = () => {
           state: data.state,
           zip_code: data.zip_code,
         },
-          orderId: data._id,
-          paymentType: data.payment_type,
-          items,
-          totalAmount,
-      })
-      //chuyển hướng đến trang hoàn tất
-      navigate("/cart/done")
+        orderId: data._id,
+        paymentType: data.payment_type,
+        items,
+        totalAmount,
+      });
+      navigate("/cart/done");
     },
-
   });
 
-  const onSubmit = async(data: any) => {
-    // Xử lý dữ liệu đặt hàng ở đây
-    console.log("Dữ liệu checkout:", data);
-    //payload order
+  const onSubmit = async (data: any) => {
     const orderPayload = {
       customer: {
         last_name: data.last_name,
@@ -88,145 +82,218 @@ const CartCheckoutPage = () => {
         state: data.state,
         zip_code: data.zip_code,
       },
-      order_items: items.map(item => ({
+      order_items: items.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
       })),
       payment_type: data.payment_type || 1,
-      order_note: data.order_note || '',
-    }
-    //tao don
+      order_note: data.order_note || "",
+    };
     await mutationCreateOrder.mutateAsync(orderPayload);
-
   };
 
   return (
-    <main className="container mx-auto">
-      <CartSteps  />
-      <h1 className="text-2xl font-bold mb-4">Checkout</h1>
-      <form className="checkout-layout mx-auto flex gap-x-5" autoComplete="off" onSubmit={handleSubmit(onSubmit)}>
-        <div className="col-main w-2/3">
-          <section className="customer-info-form mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-semibold">Thông tin khách hàng</h2>
-              <a href="/login?callbackUrl=/cart/checkout" className="text-blue-600 text-sm hover:underline">Đã có tài khoản? Đăng nhập</a>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <main className="container mx-auto py-8 max-w-6xl">
+      <CartSteps />
+      {/* <h1 className="text-3xl font-bold mb-6 text-center">Thanh toán</h1> */}
+
+      <form
+        className="flex flex-col lg:flex-row gap-6"
+        autoComplete="off"
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        {/* === LEFT SIDE: CUSTOMER FORM === */}
+        <div className="flex-1 space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Thông tin khách hàng</CardTitle>
+              <a
+                href="/login?callbackUrl=/cart/checkout"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Đã có tài khoản? Đăng nhập
+              </a>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Họ *</Label>
+                  <Input {...register("last_name")} />
+                  {errors.last_name && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.last_name.message as string}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label>Tên *</Label>
+                  <Input {...register("first_name")} />
+                  {errors.first_name && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.first_name.message as string}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Số điện thoại *</Label>
+                  <Input {...register("phone")} />
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.phone.message as string}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label>Email *</Label>
+                  <Input type="email" {...register("email")} />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.email.message as string}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div>
-                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">Họ <span className="text-red-500">*</span></label>
-                <input type="text" id="last_name" {...register("last_name")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message as string}</p>}
+                <Label>Địa chỉ *</Label>
+                <Input {...register("street")} />
+                {errors.street && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.street.message as string}
+                  </p>
+                )}
               </div>
-              <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">Tên <span className="text-red-500">*</span></label>
-                <input type="text" id="first_name" {...register("first_name")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message as string}</p>}
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Thành phố *</Label>
+                  <Input {...register("city")} />
+                </div>
+                <div>
+                  <Label>Tỉnh/Thành *</Label>
+                  <Input {...register("state")} />
+                </div>
+                <div>
+                  <Label>Mã bưu điện</Label>
+                  <Input maxLength={5} {...register("zip_code")} />
+                </div>
               </div>
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Số điện thoại <span className="text-red-500">*</span></label>
-                <input type="tel" id="phone" {...register("phone")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message as string}</p>}
-              </div>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
-                <input type="email" id="email" {...register("email")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message as string}</p>}
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="street" className="block text-sm font-medium text-gray-700">Địa chỉ (Số nhà, đường...) <span className="text-red-500">*</span></label>
-                <input type="text" id="street" {...register("street")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.street && <p className="text-red-500 text-xs mt-1">{errors.street.message as string}</p>}
-              </div>
-              <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700">Thành phố <span className="text-red-500">*</span></label>
-                <input type="text" id="city" {...register("city")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city.message as string}</p>}
-              </div>
-              <div>
-                <label htmlFor="state" className="block text-sm font-medium text-gray-700">Tỉnh/Thành <span className="text-red-500">*</span></label>
-                <input type="text" id="state" {...register("state")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state.message as string}</p>}
-              </div>
-              <div>
-                <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700">Mã bưu điện</label>
-                <input type="text" id="zip_code" {...register("zip_code")}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" maxLength={5} />
-                {errors.zip_code && <p className="text-red-500 text-xs mt-1">{errors.zip_code.message as string}</p>}
-              </div>
-            </div>
-          </section>
-          <section className="payment-methods">
-            <h2 className="text-xl font-semibold mb-2">Phương thức thanh toán</h2>
-            <div className="flex flex-col md:flex-row gap-4">
-              <label className="inline-flex items-center">
-                <input type="radio" value="1" {...register("payment_type")}
-                  className="mr-2" />
-                <span>Thẻ tín dụng</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input type="radio" value="2" {...register("payment_type")}
-                  className="mr-2" />
-                <span>PayPal</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input type="radio" value="3" {...register("payment_type")}
-                  className="mr-2" />
-                <span>Chuyển khoản ngân hàng</span>
-              </label>
-            </div>
-            {errors.payment_type && <p className="text-red-500 text-xs mt-1">{errors.payment_type.message as string}</p>}
-          </section>
-          <section className="order-note mt-5">
-            <h2 className="text-xl font-semibold mb-2">Ghi chú đơn hàng</h2>
-            <textarea className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              rows={4} placeholder="Nhập ghi chú cho đơn hàng của bạn" {...register("order_note")}></textarea>
-            {errors.order_note && <p className="text-red-500 text-xs mt-1">{errors.order_note.message as string}</p>}
-          </section>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Phương thức thanh toán</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup defaultValue="1">
+                <div className="flex flex-col gap-2">
+                  <Label className="flex items-center space-x-2">
+                    <RadioGroupItem value="1" {...register("payment_type")} />
+                    <span>Thẻ tín dụng</span>
+                  </Label>
+                  <Label className="flex items-center space-x-2">
+                    <RadioGroupItem value="2" {...register("payment_type")} />
+                    <span>PayPal</span>
+                  </Label>
+                  <Label className="flex items-center space-x-2">
+                    <RadioGroupItem value="3" {...register("payment_type")} />
+                    <span>Chuyển khoản ngân hàng</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+              {errors.payment_type && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.payment_type.message as string}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ghi chú đơn hàng</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                rows={4}
+                placeholder="Nhập ghi chú cho đơn hàng của bạn"
+                {...register("order_note")}
+              />
+            </CardContent>
+          </Card>
         </div>
-        <div className="col-sub w-1/3">
-          <section className="cart-list-items bg-white rounded-lg shadow p-4 mb-4">
-            <h2 className="text-xl font-semibold mb-2">Giỏ hàng của bạn</h2>
-           <div className="items-list flex flex-col gap-4">
-              {
-                items.map(item => (
-                  <div key={item.id} className="cart-item flex items-center border-b py-2 gap-3">
-                    <img src={item.thumbnail} alt={item.product_name} className="w-12 h-12 object-cover rounded" />
-                    <div className="flex-1">
+
+        {/* === RIGHT SIDE: CART SUMMARY === */}
+        <div className="w-full lg:w-1/3 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Giỏ hàng của bạn</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between border-b pb-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.thumbnail}
+                      alt={item.product_name}
+                      className="w-12 h-12 rounded object-cover"
+                    />
+                    <div>
                       <div className="font-medium">{item.product_name}</div>
-                      <div className="text-gray-500 text-sm">{item.price} x {item.quantity}</div>
+                      <div className="text-sm text-gray-500">
+                        {item.price} x {item.quantity}
+                      </div>
                     </div>
-                    <div className="text-right min-w-[90px] font-semibold text-gray-800">{(item.price * item.quantity).toFixed(2)}đ</div>
                   </div>
-                ))
-              }
-           </div>
-            <div className="flex items-center mt-4">
-              <input type="text" placeholder="Nhập mã giảm giá" className="flex-1 border border-gray-300 rounded-l-md p-2" />
-              <button type="button" className="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700">Áp dụng</button>
-            </div>
-          </section>
-          <section className="order-summary bg-white rounded-lg shadow p-4 mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-700">Tạm tính</span>
-              <span className="font-semibold">{totalAmount.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-700">Phí vận chuyển</span>
-              <span className="font-semibold">0</span>
-            </div>
-            <div className="flex justify-between items-center border-t pt-4">
-              <span className="text-xl font-bold">Tổng cộng</span>
-              <span className="text-xl font-bold text-blue-600">{totalAmount.toFixed(2)}</span>
-            </div>
-          </section>
-          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition">Đặt hàng</button>
+                  <span className="font-semibold text-gray-800">
+                    {(item.price * item.quantity).toFixed(2)}đ
+                  </span>
+                </div>
+              ))}
+              <div className="flex mt-3">
+                <Input placeholder="Nhập mã giảm giá" className="rounded-r-none" />
+                <Button type="button" className="rounded-l-none">
+                  Áp dụng
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tóm tắt đơn hàng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Tạm tính</span>
+                <span className="font-medium">{totalAmount.toFixed(2)}đ</span>
+              </div>
+              {/* <div className="flex justify-between text-sm">
+                <span>Phí vận chuyển</span>
+                <span className="font-medium">0đ</span>
+              </div> */}
+              <div className="flex justify-between items-center border-t pt-3">
+                <span className="text-lg font-semibold">Tổng cộng</span>
+                <span className="text-lg font-bold text-blue-600">
+                  {totalAmount.toFixed(2)}đ
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button
+            type="submit"
+            className="w-full text-lg py-3 font-semibold"
+          >
+            Đặt hàng
+          </Button>
         </div>
       </form>
     </main>

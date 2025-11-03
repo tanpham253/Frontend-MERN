@@ -6,6 +6,7 @@ export interface Product {
     product_name: string;
     slug: string;
     price: number;
+    description: string;
     discount: number;
     thumbnail: string;
     model_year: number;
@@ -29,4 +30,9 @@ export const getProductHome = async ({
 export const getProductByCategorySlug = async (slug: string): Promise<ProductResponse> => {
     const response = await axios.get(`${env.BACKEND_URL_API}/v1/products/category/${slug}`);
     return response.data.data;
+};
+
+export const getProductBySlug = async (slug: string): Promise<Product> => {
+  const response = await axios.get(`${env.BACKEND_URL_API}/v1/products/slug/${slug}`);
+  return response.data.data;
 };
